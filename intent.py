@@ -4,8 +4,9 @@ import random
 from datetime import datetime
 from typing import Optional
 
-from common_v2 import OpenAIService, logger
 from pydantic import BaseModel, Field
+
+from common_v2 import OpenAIService, logger
 
 
 # -----------------------------------------------------#
@@ -25,10 +26,9 @@ class ExaminationInformation(BaseModel):
     試験の出題傾向・レベルに関する詳細情報を格納するモデル。
     """
 
-    language: Optional[str] = Field(
-        default=None, description="出題言語（解析できない場合はNone）"
-    )
+    language: Optional[str] = Field(default=None, description="出題言語（解析できない場合はNone）")
     level: Optional[str] = Field(default=None, description="出題難易度（解析できない場合はNone）")
+
 
 class ConfirmationMessage(BaseModel):
     """
@@ -58,16 +58,13 @@ class IntentExtract:
         )
 
         try:
-            result = self.openai_service.call_llm_with_json_output(
-                system_prompt, user_input, ExaminationStartIntent
-            )
+            result = self.openai_service.call_llm_with_json_output(system_prompt, user_input, ExaminationStartIntent)
             logger.info(f"試験受験意図の検出結果: {result.is_request_for_examination}")
             return result
 
         except Exception as e:
             logger.error(f"意図検出に失敗しました: {str(e)}")
             return ExaminationStartIntent(description=user_input, is_request_for_examination=False)
-
 
     def extract_examination_info(self, user_input):
         """
@@ -80,14 +77,9 @@ class IntentExtract:
             "出題言語は英語、フランス語など、出題難易度は初級、中級、上級などです。"
         )
         try:
-            result = self.openai_service.call_llm_with_json_output(
-                system_prompt, user_input, ExaminationInformation
-            )
+            result = self.openai_service.call_llm_with_json_output(system_prompt, user_input, ExaminationInformation)
 
-            logger.info(
-                f"情報抽出結果: "
-                f"出題言語={result.language}, 出題難易度={result.level}"
-            )
+            logger.info(f"情報抽出結果: " f"出題言語={result.language}, 出題難易度={result.level}")
             return result
         except Exception as e:
             logger.error(f"予約情報の抽出に失敗しました: {str(e)}")
@@ -106,16 +98,14 @@ class IntentExtract:
 
         try:
             result = self.openai_service.call_llm_with_json_output(
-                system_prompt,
-                f"出題言語: {language}, 出題難易度: {level}",
-                ConfirmationMessage
+                system_prompt, f"出題言語: {language}, 出題難易度: {level}", ConfirmationMessage
             )
             logger.info(f"確認メッセージ生成結果: {result.confirmation_message}")
-            return  result
+            return result
         except Exception as e:
             logger.error(f"確認メッセージの生成に失敗しました: {str(e)}")
             return ConfirmationMessage(confirmation_message="試験情報の確認に失敗しました。再度お試しください。")
-    
+
 
 # -----------------------------------------------------#
 # ユーザーインターフェース                              #

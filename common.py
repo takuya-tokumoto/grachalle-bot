@@ -112,7 +112,7 @@ class OpenAIService:
             logger.error(f"LLM API呼び出しに失敗: {str(e)}")
             # 空のJSONオブジェクトを返す
             return "{}"
-        
+
     def _create_example_from_schema(self, json_schema):
         """スキーマから具体的な例を生成する"""
         example = {}

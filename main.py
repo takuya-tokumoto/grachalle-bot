@@ -2,12 +2,13 @@
 import asyncio
 import logging
 
-from intent import IntentExtract
-from examination import ConversationalChat
 from evaluator import ConversationEvaluator
+from examination import ConversationalChat
+from intent import IntentExtract
 
 # ロガーの参照
 logger = logging.getLogger(__name__)
+
 
 # -----------------------------------------------------#
 # メインアプリケーションエントリーポイント               #
@@ -60,42 +61,42 @@ class GraChalleInterface:
             return confirmation.confirmation_message, examination_info.language, examination_info.level
         else:
             return "必要な情報が不足しているため、試験を開始できませんでした。", None, None
-        
-    async def _examination(self, language, level):    
+
+    async def _examination(self, language, level):
         logger.info("会話式外国語試験を開始します")
-        
+
         # 試験開始
         first_conv = await self.examination.initialize_conversation(language, level)
         print("\n試験官: " + first_conv)
-        
+
         # 会話カウンター（ユーザーの応答回数）
         conversation_turns = 0
-        
+
         # 会話ループ
         while True:
             user_input = input("\nあなた: ")
-            
+
             # 終了コマンド
             if user_input.lower() in ["終了", "exit", "quit", "q"]:
                 break
-            
+
             # ユーザーの応答回数をカウント
             conversation_turns += 1
-            
+
             response = await self.examination.continue_conversation(user_input)
             print("\n試験官: " + response)
-            
+
             # 3往復したら終了
             if conversation_turns >= 3:
                 print("\n3往復の会話が完了しました。会話を終了します。")
                 break
-            
+
             # 試験が終了した場合
             if "【会話試験終了】" in response:
                 break
-        
+
         logger.info("\n会話式外国語試験を終了します")
-        
+
         # 会話履歴を返す（評価のため）
         return self.examination.get_conversation_history()
 
@@ -111,7 +112,7 @@ class GraChalleInterface:
         result = await evaluator.result_report(score, feedback)
 
         return result
-    
+
     async def run_async(self, user_input):
         """
         ユーザー入力を元に試験を実行する非同期メソッド
@@ -119,16 +120,16 @@ class GraChalleInterface:
         # 意図検出と情報抽出
         confirmation, language, level = self._intent_extract(user_input)
         print(confirmation)
-        
+
         if language is None or level is None:
             return "試験に必要な情報が揃いませんでした。"
-        
+
         # 試験実行
         conversation_history = await self._examination(language, level)
-        
+
         # 評価
         result = await self._evaluator(conversation_history)
-        
+
         return result
 
     def run(self, user_input):
@@ -137,15 +138,14 @@ class GraChalleInterface:
         """
         return asyncio.run(self.run_async(user_input))
 
+
 # 単独実行の場合のサンプルコード
 if __name__ == "__main__":
     # ログの設定
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
-    
+
     interface = GraChalleInterface()
     user_input = input("試験のリクエストを入力してください: ")
     result = interface.run(user_input)
