@@ -6,7 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from common_v2 import OpenAIService, logger
+from common import OpenAIService, logger
 
 # -----------------------------------------------------#
 # Pydanticモデル - Parallelizationパターン用           #

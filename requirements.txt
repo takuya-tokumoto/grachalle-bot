@@ -1,0 +1,16 @@
+# Core Python libraries
+# asyncio
+# typing
+
+# Azure OpenAI and API interaction
+openai==1.63.0
+python-dotenv
+
+# Data validation and modeling
+pydantic>=2.10.0
+
+# Logging (built-in, but specified for clarity)
+# logging
+
+# Optional but recommended for requirements tracking
+setuptools

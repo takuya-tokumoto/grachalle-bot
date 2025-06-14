@@ -68,45 +68,35 @@ class OpenAIService:
             )
         return self._async_client
 
-    def call_llm_with_json_output(self, system_prompt, user_input, json_schema, temperature=0):
+    def call_llm_with_json_output(self, system_prompt, user_input, output_schema, temperature=0):
         """
         構造化JSONレスポンスを得るためのLLM呼び出しを行います。
 
         Parameters:
             system_prompt (str): システムプロンプト
             user_input (str): ユーザー入力
-            json_schema (dict): 期待するJSONスキーマ
+            output_schema (pydantic.BaseModel): Pydanticモデルクラス
             temperature (float): 生成の多様性（0～1）
 
         Returns:
-            str: JSON形式の文字列
+            object: 指定されたPydanticモデルのインスタンス
         """
         try:
-            # JSONスキーマをシステムプロンプトに埋め込む
-            enhanced_prompt = f"{system_prompt}\nOutput JSON matching this schema: {json.dumps(json_schema)}"
-
-            response = self.client.chat.completions.create(
+            response = self.client.beta.chat.completions.parse(
                 messages=[
-                    {"role": "system", "content": enhanced_prompt},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_input},
                 ],
                 model=self.model_name,
                 temperature=temperature,
-                response_format={"type": "json_object"},
+                response_format=output_schema,
             )
 
             # JSONレスポンスを取得
-            json_content = response.choices[0].message.content
+            json_content = response.choices[0].message.parsed
             logger.debug(f"LLM応答: {json_content}")
 
-            # JSONを解析して検証
-            try:
-                parsed_json = json.loads(json_content)
-                return json_content
-            except json.JSONDecodeError:
-                logger.error(f"無効なJSON応答を受信: {json_content}")
-                # 空のJSONオブジェクトを返す
-                return "{}"
+            return json_content
 
         except Exception as e:
             logger.error(f"LLM API呼び出しに失敗: {str(e)}")
@@ -130,46 +120,37 @@ class OpenAIService:
                     example[prop] = {"key": "value"}
         return example
 
-    async def call_llm_with_json_output_async(self, system_prompt, user_input, json_schema, temperature=0):
+    async def call_llm_with_json_output_async(self, system_prompt, user_input, output_schema, temperature=0):
         """
         構造化JSONレスポンスを得るためのLLM呼び出しを非同期で行います。
 
         Parameters:
             system_prompt (str): システムプロンプト
             user_input (str): ユーザー入力
-            json_schema (dict): 期待するJSONスキーマ
+            output_schema (pydantic.BaseModel): Pydanticモデルクラス
             temperature (float): 生成の多様性（0～1）
 
         Returns:
-            str: JSON形式の文字列
+            object: 指定されたPydanticモデルのインスタンス
         """
         try:
             async_client = self._get_async_client()
 
-            # JSONスキーマをシステムプロンプトに埋め込む
-            enhanced_prompt = f"{system_prompt}\nOutput JSON matching this schema: {json.dumps(json_schema)}"
-            response = await async_client.chat.completions.create(
+            response = await async_client.beta.chat.completions.parse(
                 messages=[
-                    {"role": "system", "content": enhanced_prompt},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_input},
                 ],
                 model=self.model_name,
                 temperature=temperature,
-                response_format={"type": "json_object"},
+                response_format=output_schema,
             )
 
             # JSONレスポンスを取得
-            json_content = response.choices[0].message.content
+            json_content = response.choices[0].message.parsed
             logger.debug(f"LLM応答(非同期): {json_content}")
 
-            # JSONを解析して検証
-            try:
-                parsed_json = json.loads(json_content)
-                return json_content
-            except json.JSONDecodeError:
-                logger.error(f"無効なJSON応答を受信(非同期): {json_content}")
-                # 空のJSONオブジェクトを返す
-                return "{}"
+            return json_content
 
         except Exception as e:
             logger.error(f"非同期LLM API呼び出しに失敗: {str(e)}")
