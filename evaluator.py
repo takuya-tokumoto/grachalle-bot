@@ -16,7 +16,7 @@ from common import OpenAIService, logger
 class EvaluationScore(BaseModel):
     """評価結果を格納するモデル"""
 
-    score: int = Field(description="会話の評価スコア (1-10)")
+    score: int = Field(description="会話の評価スコア (0-100)")
 
 
 class EvaluationFeedback(BaseModel):
@@ -113,12 +113,15 @@ class ConversationEvaluator:
         """
 
         system_prompt = (
-            "以下の会話履歴に基づいて、詳細な評価レポートを生成してください。"
+            "以下の評価情報を確認してレポートとしてユーザーに返答してください。"
             "レポートには、スコア、フィードバック、強みと改善点を含めてください。"
             "出力は日本語で、具体的な例を挙げてください。"
+            "■評価情報\n"
+            f"スコア(100点満点): {score}\n"
+            f"フィードバック: {feedback}\n"
         )
 
-        user_content = f"スコア: {score}\n" f"フィードバック: {feedback}\n"
+        user_content = f"公平公正な評価結果を提供してください。"
 
         try:
             # 詳細分析を取得
@@ -126,7 +129,7 @@ class ConversationEvaluator:
                 system_prompt, user_content, EvaluationResult
             )
 
-            return result
+            return result.result
 
         except Exception as e:
             logger.error(f"詳細レポート生成中にエラーが発生しました: {str(e)}")

@@ -19,118 +19,67 @@ class GraChalleInterface:
         self.examination = ConversationalChat()
         self.evaluator = ConversationEvaluator()
 
-    def _intent_extract(self, user_input):
-        """
-        試験開始のための情報抽出を実施。
-        """
-        logger.info(f"ユーザー入力を処理しています: {user_input}")
+        self.IS_REQUEST_EXAMINATION = False
+        self.LANGAGE = None
+        self.LEVEL = None
 
-        # ステップ1: 意図検出
-        intent_result = self.intent_extract.detect_intent(user_input)
-
-        # 試験リクエストでない場合は終了
-        if not intent_result.is_request_for_examination:
-            logger.info("入力は試験リクエストではありません")
-            return "申し訳ありませんが、関係のない入力のため試験開始できませんでした。"
-
-        # ステップ2: 情報抽出
-        examination_info = self.intent_extract.extract_examination_info(user_input)
-
-        # ステップ3: 不足情報の入力促進
-        if examination_info.language is None:
-            language_input = input("試験で出題される言語を指定してください: ")
-            enhanced_input = f"{user_input} {language_input}"
-            logger.info(f"言語入力: {enhanced_input}")
-
-            examination_info = self.intent_extract.extract_examination_info(enhanced_input)
-            logger.info(f"{examination_info.language} が抽出されました")
-
-        if examination_info.level is None:
-            level_input = input("出題難易度を指定してください: ")
-            enhanced_input = f"{user_input} {level_input}"
-            examination_info = self.intent_extract.extract_examination_info(enhanced_input)
-            logger.info(f"{examination_info.level} が抽出されました")
-
-        # ステップ4: 確認メッセージ生成
-        if examination_info.language and examination_info.level:
-            confirmation = self.intent_extract.generate_confirmation(
-                examination_info.language,
-                examination_info.level,
-            )
-            # 抽出された言語とレベルを返す
-            return confirmation.confirmation_message, examination_info.language, examination_info.level
-        else:
-            return "必要な情報が不足しているため、試験を開始できませんでした。", None, None
-
-    async def _examination(self, language, level):
-        logger.info("会話式外国語試験を開始します")
-
-        # 試験開始
-        first_conv = await self.examination.initialize_conversation(language, level)
-        print("\n試験官: " + first_conv)
-
-        # 会話カウンター（ユーザーの応答回数）
-        conversation_turns = 0
-
-        # 会話ループ
-        while True:
-            user_input = input("\nあなた: ")
-
-            # 終了コマンド
-            if user_input.lower() in ["終了", "exit", "quit", "q"]:
-                break
-
-            # ユーザーの応答回数をカウント
-            conversation_turns += 1
-
-            response = await self.examination.continue_conversation(user_input)
-            print("\n試験官: " + response)
-
-            # 3往復したら終了
-            if conversation_turns >= 3:
-                print("\n3往復の会話が完了しました。会話を終了します。")
-                break
-
-            # 試験が終了した場合
-            if "【会話試験終了】" in response:
-                break
-
-        logger.info("\n会話式外国語試験を終了します")
-
-        # 会話履歴を返す（評価のため）
-        return self.examination.get_conversation_history()
+        self.exam_status = "hearing"  # "hearing", "before", "started", "finished"
+        self.conversation_turns = 0
+        self.MAX_TURNS = 3  # 最大会話ターン数
 
     async def _evaluator(self, conversation_full):
         evaluator = ConversationEvaluator()
         evaluator.set_conversation_history(conversation_full)
         logger.info("\n会話の評価を開始します")
-        language = "日本語"
-        level = "初級"
-
-        score = await evaluator.examination_score(language, level)
-        feedback = await evaluator.examination_feedback(language, level)
+        score = await evaluator.examination_score(self.LANGAGE, self.LEVEL)
+        feedback = await evaluator.examination_feedback(self.LANGAGE, self.LEVEL)
         result = await evaluator.result_report(score, feedback)
-
         return result
 
     async def run_async(self, user_input):
-        """
-        ユーザー入力を元に試験を実行する非同期メソッド
-        """
-        # 意図検出と情報抽出
-        confirmation, language, level = self._intent_extract(user_input)
-        print(confirmation)
-
-        if language is None or level is None:
-            return "試験に必要な情報が揃いませんでした。"
-
-        # 試験実行
-        conversation_history = await self._examination(language, level)
-
-        # 評価
-        result = await self._evaluator(conversation_history)
-
-        return result
+        logger.info("会話式外国語試験を開始します")
+        if self.exam_status == "hearing":
+            # ステップ1: 意図検出
+            if not self.IS_REQUEST_EXAMINATION:
+                content = self.intent_extract.detect_intent(user_input)
+                self.IS_REQUEST_EXAMINATION = content.is_request_for_examination
+            # 試験リクエストでない場合は終了
+            if not self.IS_REQUEST_EXAMINATION:
+                logger.info("入力は試験リクエストではありません")
+                return "申し訳ありませんが、関係のない入力のため終了します。"
+            # ステップ2: 情報抽出
+            if self.LANGAGE is None or self.LEVEL is None:
+                examination_info = self.intent_extract.extract_examination_info(user_input)
+                if self.LANGAGE is None:
+                    logger.info(f"抽出された言語: {examination_info.language}")
+                    self.LANGAGE = examination_info.language
+                if self.LEVEL is None:
+                    logger.info(f"抽出されたレベル: {examination_info.level}")
+                    self.LEVEL = examination_info.level
+            # ステップ3: 不足情報の入力促進
+            if self.LANGAGE is None:
+                return "試験で出題される言語を指定してください。"
+            if self.LEVEL is None:
+                return "出題難易度を指定してください。"
+            confirmation = self.intent_extract.generate_confirmation(
+                self.LANGAGE,
+                self.LEVEL,
+            )
+            self.exam_status = "before"
+            return confirmation.confirmation_message
+        if self.exam_status == "before":
+            # 試験開始
+            first_conv = await self.examination.initialize_conversation(self.LANGAGE, self.LEVEL)
+            self.exam_status = "started"
+            return first_conv
+        if self.conversation_turns >= self.MAX_TURNS:
+            # 試験を終了して評価を実行
+            conversation_history = self.examination.get_conversation_history()
+            response = await self._evaluator(conversation_history)
+            return response
+        response = await self.examination.continue_conversation(user_input)
+        self.conversation_turns += 1
+        return response
 
     def run(self, user_input):
         """
