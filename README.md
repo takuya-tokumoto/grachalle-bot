@@ -30,7 +30,7 @@ GraChalleBot（グラチャレボット）は、ユーザーとの対話を通�
 1. リポジトリをクローンします
 
 ```bash
-git clone https://github.com/yourusername/grachalle-bot.git
+git clone https://github.com/takuya-tokumoto/grachalle-bot.git
 cd grachalle-bot
 ```
 
@@ -90,16 +90,3 @@ grachalle-bot/
 ├── README.md            # 本ドキュメント
 └── requirements.txt     # 依存パッケージ
 ```
-
-### 主要クラス
-
-- `GraChalleInterface`: メインとなるボットのインターフェース
-- `IntentExtractor`: ユーザー入力から意図を抽出するクラス
-- `ExamGenerator`: 試験問題を生成するクラス
-- `AnswerEvaluator`: 回答を評価するクラス
-
-## 注意事項
-
-- このボットは学習目的で使用されることを想定しています
-- 評価はAIによる自動評価であり、完全な精度を保証するものではありません
-- 現在はStreamlitの再実行モデルの影響で会話状態の管理に課題があります
